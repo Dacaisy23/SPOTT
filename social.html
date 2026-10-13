@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPOTT - Social Map Cameroon</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+html,body{margin:0;padding:0;height:100%;font-family:system-ui;background:#000}
+#map{height:65vh;width:100vw}
+.feed{height:35vh;background:white;border-radius:24px 24px 0 0;margin-top:-20px;position:relative;z-index:1000;overflow-y:auto;padding:16px}
+.feed h3{margin:0 0 10px 0;font-size:16px}
+.post{border-bottom:1px solid #eee;padding:12px 0}
+.post b{font-size:12px;color:#0066FF}
+.post p{margin:4px 0;font-size:14px;line-height:1.3}
+.post.meta{font-size:11px;color:gray;display:flex;gap:12px;margin-top:6px}
+.post.meta button{border:0;background:#f0f2f5;padding:4px 10px;border-radius:20px;font-weight:700;cursor:pointer}
+.header{position:absolute;top:0;left:0;right:0;z-index:1000;background:white;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hint{position:absolute;top:110px;left:50%;transform:translateX(-50%);z-index:1000;background:black;color:white;padding:8px 14px;border-radius:20px;font-size:11px}
+.town-bar{position:absolute;top:52px;left:0;right:0;z-index:1000;display:flex;gap:6px;overflow-x:auto;padding:8px 12px;white-space:nowrap}
+.town-bar button{padding:6px 12px;border-radius:20px;border:0;background:white;font-weight:700;font-size:11px;box-shadow:0 2px 6px rgba(0,0,0,0.2);cursor:pointer;flex-shrink:0}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{width:100%;max-width:420px;background:white;border-radius:24px 24px 0 0;padding:20px 20px 30px 20px}
+.modal textarea{width:100%;padding:12px;border:1.5px solid #ddd;border-radius:12px;box-sizing:border-box;font-family:system-ui}
+.row{display:flex;gap:10px;margin-top:12px}
+.row button{flex:1;padding:12px;border-radius:12px;border:0;font-weight:900;cursor:pointer}
+.badge{background:white;border:2px solid #0066FF;border-radius:12px;padding:6px 8px;font-size:12px;max-width:140px;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="header">
+<b style="color:#0066FF">SPOTT 🇨🇲</b>
+<select id="townSelect" onchange="goTown(this.value)" style="padding:6px 10px;border-radius:20px;border:2px solid #0066FF;font-weight:800;font-size:12px;background:white;flex:1;max-width:160px">
+<option value="cameroon">🇨🇲 All Cameroon</option>
+<option value="buea" selected>📍 Buea</option>
+<option value="limbe">📍 Limbe</option>
+<option value="douala">📍 Douala</option>
+<option value="yaounde">📍 Yaounde</option>
+<option value="bafoussam">📍 Bafoussam</option>
+<option value="bamenda">📍 Bamenda</option>
+<option value="garoua">📍 Garoua</option>
+<option value="kribi">📍 Kribi</option>
+<option value="bertoua">📍 Bertoua</option>
+</select>
+<span id="count" style="font-size:10px;background:#E4F0FF;color:#0066FF;padding:4px 8px;border-radius:20px;white-space:nowrap">0 spots</span>
+</div>
+
+<div class="town-bar">
+<button onclick="goTown('buea')">Buea</button>
+<button onclick="goTown('bafoussam')">Bafoussam</button>
+<button onclick="goTown('garoua')">Garoua</button>
+<button onclick="goTown('douala')">Douala</button>
+<button onclick="goTown('yaounde')">Yaounde</button>
+<button onclick="goTown('bamenda')">Bamenda</button>
+<button onclick="goTown('kribi')">Kribi</button>
+</div>
+
+<div class="hint">👆 Tap map to add spot</div>
+<div id="map"></div>
+<div class="feed" id="feed"><h3>Live in Cameroon</h3><div id="list">No spots yet - tap map to be first!</div></div>
+
+<div class="modal-bg" id="modal"><div class="modal"><h3 style="margin:0 0 8px">What is happening here?</h3><p id="coords" style="font-size:11px;color:gray;margin:0 0 8px"></p><textarea id="text" rows="3" placeholder="Road blocked at Muea, fresh fish here, fire, police control... anything!"></textarea><div class="row"><button style="background:#eee" onclick="closeModal()">Cancel</button><button style="background:#0066FF;color:white" onclick="post()">POST</button></div></div></div>
+
+<script>
+var towns = {
+  cameroon: {lat:5.5, lng:12.2, zoom:7},
+  buea: {lat:4.1557, lng:9.242, zoom:14},
+  limbe: {lat:4.024, lng:9.214, zoom:14},
+  douala: {lat:4.05, lng:9.70, zoom:13},
+  yaounde: {lat:3.848, lng:11.502, zoom:13},
+  bafoussam: {lat:5.477, lng:10.417, zoom:14},
+  bamenda: {lat:5.963, lng:10.159, zoom:14},
+  garoua: {lat:9.301, lng:13.391, zoom:14},
+  kribi: {lat:2.937, lng:9.907, zoom:14},
+  bertoua: {lat:4.578, lng:13.684, zoom:14}
+};
+
+var map = L.map('map',{zoomControl:false}).setView([4.155,9.243],14);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM'}).addTo(map);
+
+function goTown(name){
+  var t = towns[name];
+  if(t){ map.setView([t.lat, t.lng], t.zoom); }
+  document.getElementById('townSelect').value = name;
+  localStorage.setItem('spott_town', name);
+}
+
+var pending=null;
+var spots=JSON.parse(localStorage.getItem('spott_v3')||'[]');
+
+function save(){localStorage.setItem('spott_v3',JSON.stringify(spots));}
+
+function render(){
+  map.eachLayer(l=>{if(l instanceof L.Marker) map.removeLayer(l)});
+  var list=document.getElementById('list');
+  list.innerHTML='';
+  if(!spots.length) list.innerHTML='No spots yet - tap map to be first!';
+  spots.slice().reverse().forEach((s)=>{
+    var origIdx = spots.indexOf(s);
+    var icon=L.divIcon({html:'<div class="badge">'+s.text.substring(0,28)+'</div>',className:'',iconSize:[140,30]});
+    L.marker([s.lat,s.lng],{icon:icon}).addTo(map).on('click',()=>map.setView([s.lat,s.lng],15));
+    var d=document.createElement('div');d.className='post';
+    d.innerHTML='<b>📍 '+s.lat.toFixed(3)+','+s.lng.toFixed(3)+'</b> • '+new Date(s.time).toLocaleTimeString()+'<p>'+s.text+'</p><div class="meta"><button onclick="like('+origIdx+')">❤️ '+(s.likes||0)+'</button><button>💬 '+(s.comments?.length||0)+'</button><button onclick="focusMap('+s.lat+','+s.lng+')">Show</button></div>';
+    list.appendChild(d);
+  });
+  document.getElementById('count').innerText=spots.length+' spots';
+  save();
+}
+
+map.on('click',e=>{pending=e.latlng;document.getElementById('coords').innerText=e.latlng.lat.toFixed(4)+', '+e.latlng.lng.toFixed(4);document.getElementById('modal').classList.add('show');});
+function closeModal(){document.getElementById('modal').classList.remove('show');document.getElementById('text').value='';}
+function post(){var t=document.getElementById('text').value.trim();if(!t)return;spots.push({lat:pending.lat,lng:pending.lng,text:t,time:Date.now(),likes:0,comments:[]});closeModal();render();}
+window.like=function(i){spots[i].likes=(spots[i].likes||0)+1;render();}
+window.focusMap=function(lat,lng){map.setView([lat,lng],15);window.scrollTo(0,0);}
+
+render();
+var lastTown = localStorage.getItem('spott_town') || 'buea';
+goTown(lastTown);
+</script>
+</body>
+</html>
