@@ -3,76 +3,48 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPOTT - Cameroon Map</title>
+<title>SPOTT - All Cameroon Live Map</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  html, body { margin:0; padding:0; height:100%; }
-  #map { height:100vh; width:100vw; }
-  .header { position:absolute; top:0; left:0; right:0; z-index:1000; background:white; padding:10px 15px; border-bottom:2px solid #0066FF; font-family:sans-serif; }
-  .header b { color:#0066FF; font-size:18px; }
-  .header span { color:#00A651; font-size:11px; display:block; margin-top:3px; font-weight:700; }
-  .controls { position:absolute; bottom:20px; left:50%; transform:translateX(-50%); z-index:1000; background:white; padding:12px; border-radius:20px; display:flex; gap:8px; box-shadow:0 4px 15px rgba(0,0,0,0.3); }
-  .controls button { padding:8px 12px; border-radius:20px; border:1px solid #ddd; background:#f0f0f0; font-weight:700; font-size:11px; cursor:pointer; }
-  .controls button.active { background:#0066FF; color:white; border-color:#0066FF; }
+body{margin:0;padding:0;font-family:Arial}
+#map{height:100vh;width:100%}
+.header{position:fixed;top:0;left:0;right:0;z-index:999;background:#000;color:#ffcc00;padding:10px;text-align:center;font-weight:bold;font-size:18px}
+.btns{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:95%}
+.btns button{padding:12px 16px;border:none;border-radius:20px;font-weight:bold;cursor:pointer;color:#fff}
+.police{background:#ff0000}.accident{background:#ff8800}.traffic{background:#0088ff}.road{background:#555}
 </style>
 </head>
 <body>
-<div class="header"><b>SPOTT - Cameroon Map</b><span>Buea • Bafoussam • Garoua • Douala • Kribi - TAP MAP TO ADD PIN</span></div>
+<div class="header">SPOTT - LIVE All Cameroon - Buea | Bamenda | Bafoussam | Yaounde | Douala | Garoua | Maroua</div>
 <div id="map"></div>
-<div class="controls" id="controls">
-  <button data-type="police" class="active">POLICE</button>
-  <button data-type="control">CONTROL</button>
-  <button data-type="accident">ACCIDENT</button>
-  <button data-type="fire">FIRE</button>
-  <button data-type="fish">FISH</button>
-  <button data-type="bushmeat">BUSH MEAT</button>
-  <button data-type="market">MARKET</button>
+<div class="btns">
+<button class="police" onclick="report('Police Control')">Police</button>
+<button class="accident" onclick="report('Accident')">Accident</button>
+<button class="traffic" onclick="report('Traffic')">Traffic</button>
+<button class="road" onclick="report('Bad Road')">Bad Road</button>
 </div>
-
 <script>
-var map = L.map('map', { zoomControl:false }).setView([5.5, 12.2], 7);
-L.control.zoom({position:'bottomright'}).addTo(map);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution:'© OpenStreetMap' }).addTo(map);
-
-var selectedType = 'police';
-document.querySelectorAll('.controls button').forEach(btn=>{
-  btn.onclick = ()=>{
-    document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedType = btn.dataset.type;
-  };
-});
-
-var pins = JSON.parse(localStorage.getItem('spott_pins')||'[]');
-pins.forEach(addMarkerToMap);
-
-function addMarkerToMap(p){
-  var m = L.marker([p.lat, p.lng]).addTo(map);
-  m.bindPopup('<b>'+p.type.toUpperCase()+'</b><br>'+p.desc+'<br><small>'+new Date(p.time).toLocaleString()+'</small>');
+var map = L.map('map').setView([7.3697, 12.3547], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+var cities = [
+[4.0511, 9.7679, "Douala"],
+[3.8480, 11.5021, "Yaounde"],
+[4.1550, 9.2316, "Buea"],
+[5.9631, 10.1591, "Bamenda"],
+[5.4778, 10.4173, "Bafoussam"],
+[9.3017, 13.3927, "Garoua"],
+[10.5910, 14.3210, "Maroua"],
+[2.9167, 11.1500, "Ebolowa"],
+[4.5833, 13.6833, "Bertoua"],
+[7.3167, 13.5833, "Ngaoundere"]
+];
+cities.forEach(c=>{ L.marker([c[0],c[1]]).addTo(map).bindPopup("<b>"+c[2]+"</b><br>SPOTT Active"); });
+function report(type){
+  var center = map.getCenter();
+  L.marker([center.lat, center.lng]).addTo(map).bindPopup("<b>"+type+"</b><br>Just now<br>"+new Date().toLocaleTimeString()).openPopup();
+  alert(type + " reported!\nShare https://dacaisy23.github.io/SPOTT/ to drivers!");
 }
-
-map.on('click', function(e){
-  var desc = prompt('What did you SPOTT here? ('+selectedType.toUpperCase()+')\nE.g. Police control Muea, Fish seller...');
-  if(desc===null) return;
-  if(!desc) desc = selectedType;
-  var pin = { lat:e.latlng.lat, lng:e.latlng.lng, type:selectedType, desc:desc, time:Date.now() };
-  pins.push(pin);
-  localStorage.setItem('spott_pins', JSON.stringify(pins));
-  addMarkerToMap(pin);
-});
-
-// Go to Buea button
-L.control.custom = L.Control.extend({
-  onAdd: function(){ 
-    var b = L.DomUtil.create('button'); 
-    b.innerHTML='📍 Buea'; 
-    b.style='position:absolute;top:70px;left:10px;z-index:1000;padding:8px 12px;background:white;border-radius:20px;border:2px solid #0066FF;font-weight:900;cursor:pointer;';
-    b.onclick=()=>map.setView([4.155, 9.243], 13);
-    return b;
-  }
-});
-new L.control.custom({position:'topleft'}).addTo(map);
 </script>
 </body>
 </html>
