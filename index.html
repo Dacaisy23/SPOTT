@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>National Roads Live - SPOTT</title>
+<title>National Roads Live - SPOTT Cameroon</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -12,13 +12,15 @@
 .top b{font-size:13px;margin-right:6px;white-space:nowrap}
 .top button{border:1.5px solid #ccc;background:#fff;padding:6px 12px;border-radius:18px;font-size:13px;cursor:pointer;white-space:nowrap}
 .top button.active{background:#2563eb;color:#fff;border-color:#2563eb}
+.locate{position:fixed;bottom:90px;right:12px;z-index:999;background:#fff;border:none;box-shadow:0 2px 8px rgba(0,0,0,.3);width:44px;height:44px;border-radius:50%;font-size:20px;cursor:pointer}
+.note{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999;background:#111;color:#fff;padding:8px 14px;border-radius:20px;font-size:12px;display:none}
 #map{height:100vh;width:100%}
 </style>
 </head>
 <body>
 <div class="top">
 <b>National Roads Live</b>
-<button onclick="goCity('cameroon')" id="btn-cameroon" class="active" style="background:#008751;color:#fff;border-color:#008751;font-weight:bold">CAMEROON</button>
+<button onclick="goCity('cameroon')" id="btn-cameroon" style="background:#008751;color:#fff;border-color:#008751;font-weight:bold">CAMEROON</button>
 <button onclick="goCity('buea')" id="btn-buea">Buea</button>
 <button onclick="goCity('bamenda')" id="btn-bamenda">Bamenda</button>
 <button onclick="goCity('bafoussam')" id="btn-bafoussam">Bafoussam</button>
@@ -31,14 +33,44 @@
 <button onclick="goCity('ngaoundere')" id="btn-ngaoundere">Ngaoundere</button>
 </div>
 <div id="map"></div>
+<button class="locate" onclick="locateMe()" title="Where am I">📍</button>
+<div id="note" class="note">📍 Found you! Tap map to report what is happening here</div>
+
 <script>
 var map=L.map('map',{zoomControl:false}).setView([7.3697,12.3547],6);
 L.control.zoom({position:'topright'}).addTo(map);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 var cities={cameroon:[7.3697,12.3547],buea:[4.155,9.2316],bamenda:[5.9631,10.1591],bafoussam:[5.4778,10.4173],yaounde:[3.848,11.5021],douala:[4.0511,9.7679],garoua:[9.3017,13.3927],maroua:[10.591,14.321],bertoua:[4.5833,13.6833],ebolowa:[2.9167,11.15],ngaoundere:[7.3167,13.5833]};
-function goCity(n){document.querySelectorAll('.top button').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+n).classList.add('active');if(n==='cameroon'){map.setView(cities[n],6)}else{map.setView(cities[n],13)}}
-map.on('click',function(e){L.popup().setLatLng(e.latlng).setContent('<b>What is happening here?</b><br><input id="t" style="width:180px;padding:6px;margin:6px 0" placeholder="Indique..."><br><button onclick="addP()" style="background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:6px">Add</button>').openOn(map);window.ll=e.latlng});
-function addP(){var v=document.getElementById('t').value;if(!v)return;L.marker([ll.lat,ll.lng]).addTo(map).bindPopup(v+'<br><button onclick="this.innerText=`❤️ Liked`">❤️ Like</button>').openPopup();map.closePopup()}
+function goCity(n){document.querySelectorAll('.top button').forEach(b=>b.classList.remove('active'));var btn=document.getElementById('btn-'+n);if(btn)btn.classList.add('active');if(n==='cameroon'){map.setView(cities[n],6)}else{map.setView(cities[n],13)}}
+
+var myMarker=null; var myCircle=null;
+
+function locateMe(){
+if(!navigator.geolocation){alert('Geolocation not supported');return}
+document.getElementById('note').style.display='block';
+document.getElementById('note').innerText='🔍 Finding you...';
+navigator.geolocation.getCurrentPosition(function(pos){
+var lat=pos.coords.latitude; var lng=pos.coords.longitude;
+if(myMarker)map.removeLayer(myMarker);
+if(myCircle)map.removeLayer(myCircle);
+myCircle=L.circle([lat,lng],{radius:pos.coords.accuracy,color:'#2563eb',fillColor:'#60a5fa',fillOpacity:0.2}).addTo(map);
+myMarker=L.marker([lat,lng],{icon:L.divIcon({html:'<div style="background:#2563eb;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px #2563eb"></div>',iconSize:[16,16]})}).addTo(map).bindPopup('<b>📍 You are here</b><br><small>Tap map around you to report</small>').openPopup();
+map.setView([lat,lng],16);
+document.getElementById('note').innerText='📍 Found you! Tap map to report what is happening here';
+setTimeout(function(){document.getElementById('note').style.display='none'},4000);
+},function(err){
+document.getElementById('note').innerText='❌ Allow location to see where you are';
+setTimeout(function(){document.getElementById('note').style.display='none'},4000);
+},{enableHighAccuracy:true});
+}
+
+// AUTO LOCATE WHEN OPEN - like Google Map
+setTimeout(function(){locateMe()},1500);
+
+map.on('click',function(e){L.popup().setLatLng(e.latlng).setContent('<b>What is happening HERE?</b><br><small>📍 '+e.latlng.lat.toFixed(5)+', '+e.latlng.lng.toFixed(5)+'</small><br><input id="t" style="width:200px;padding:8px;margin:8px 0;border:1px solid #ccc;border-radius:6px" placeholder="Ex: Checkpoint police here"><br><button onclick="addP()" style="background:#2563eb;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-weight:bold">Add Report</button>').openOn(map);window.ll=e.latlng});
+var id=0;
+function addP(){var v=document.getElementById('t').value;if(!v)return;id++;var html='<b>'+v+'</b><br><small>Just now - 📍 here</small><br><button id="b'+id+'" style="border:1px solid #e11d48;background:#fff;color:#e11d48;padding:5px 12px;border-radius:14px;margin-top:6px;font-weight:bold;cursor:pointer" onclick="likeIt('+id+')">❤️ <span id="c'+id+'">0</span> Like</button>';L.marker([ll.lat,ll.lng]).addTo(map).bindPopup(html).openPopup();map.closePopup()}
+function likeIt(i){var c=document.getElementById('c'+i);var b=document.getElementById('b'+i);var n=parseInt(c.innerText);if(b.style.background=='rgb(225, 29, 72)'){n--;b.style.background='#fff';b.style.color='#e11d48'}else{n++;b.style.background='#e11d48';b.style.color='#fff'}c.innerText=n}
 </script>
 </body>
 </html>
