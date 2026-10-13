@@ -3,34 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>National Roads Live - SPOTT Cameroon</title>
+<title>National Roads Live - SPOTT</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;background:#fff}
-.top{position:fixed;top:0;left:0;right:0;z-index:999;background:#fff;padding:8px 10px;box-shadow:0 2px 10px rgba(0,0,0,0.15);display:flex;gap:6px;overflow-x:auto;white-space:nowrap;align-items:center}
-.top b{font-size:13px;margin-right:8px;white-space:nowrap}
-.top button{border:1.5px solid #ccc;background:#fff;padding:6px 14px;border-radius:18px;font-size:13px;cursor:pointer;white-space:nowrap}
-.top button.active{background:#2563eb;color:#fff;border-color:#2563eb;font-weight:bold}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial}
+.top{position:fixed;top:0;left:0;right:0;z-index:999;background:#fff;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;gap:6px;overflow-x:auto;align-items:center}
+.top b{font-size:13px;margin-right:6px;white-space:nowrap}
+.top button{border:1.5px solid #ccc;background:#fff;padding:6px 12px;border-radius:18px;font-size:13px;cursor:pointer;white-space:nowrap}
+.top button.active{background:#2563eb;color:#fff;border-color:#2563eb}
 #map{height:100vh;width:100%}
-.bottom-msg{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999;background:#111;color:#fff;padding:10px 18px;border-radius:25px;font-size:13px;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
-.modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:2000;display:none;align-items:center;justify-content:center}
-.modal.show{display:flex}
-.modal-box{background:#fff;padding:20px;border-radius:12px;width:90%;max-width:380px}
-.modal-box input{width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;margin:10px 0;font-size:14px}
-.row{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
-.row button{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-weight:bold}
-.btn-cancel{background:#eee}.btn-ok{background:#2563eb;color:#fff}
 </style>
 </head>
 <body>
 <div class="top">
 <b>National Roads Live</b>
+<button onclick="goCity('cameroon')" id="btn-cameroon" class="active" style="background:#008751;color:#fff;border-color:#008751;font-weight:bold">CAMEROON</button>
 <button onclick="goCity('buea')" id="btn-buea">Buea</button>
 <button onclick="goCity('bamenda')" id="btn-bamenda">Bamenda</button>
 <button onclick="goCity('bafoussam')" id="btn-bafoussam">Bafoussam</button>
 <button onclick="goCity('yaounde')" id="btn-yaounde">Yaounde</button>
-<button onclick="goCity('douala')" id="btn-douala" class="active">Douala</button>
+<button onclick="goCity('douala')" id="btn-douala">Douala</button>
 <button onclick="goCity('garoua')" id="btn-garoua">Garoua</button>
 <button onclick="goCity('maroua')" id="btn-maroua">Maroua</button>
 <button onclick="goCity('bertoua')" id="btn-bertoua">Bertoua</button>
@@ -38,28 +31,14 @@
 <button onclick="goCity('ngaoundere')" id="btn-ngaoundere">Ngaoundere</button>
 </div>
 <div id="map"></div>
-<div class="bottom-msg">Tap anywhere on map to add a road happening</div>
-<div class="modal" id="modal">
-<div class="modal-box">
-<b id="modalTitle">What is happening here?</b>
-<p style="font-size:12px;color:#666;margin-top:5px">e.g. police control, accident, bad road, traffic</p>
-<input type="text" id="reportInput" placeholder="Indique what is happening...">
-<div class="row">
-<button class="btn-cancel" onclick="closeModal()">Cancel</button>
-<button class="btn-ok" onclick="saveReport()">Add</button>
-</div>
-</div>
-</div>
 <script>
-var map = L.map('map', {zoomControl:false}).setView([4.0511, 9.7679], 10);
+var map=L.map('map',{zoomControl:false}).setView([7.3697,12.3547],6);
 L.control.zoom({position:'topright'}).addTo(map);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-var cities={buea:[4.155,9.2316],bamenda:[5.9631,10.1591],bafoussam:[5.4778,10.4173],yaounde:[3.848,11.5021],douala:[4.0511,9.7679],garoua:[9.3017,13.3927],maroua:[10.591,14.321],bertoua:[4.5833,13.6833],ebolowa:[2.9167,11.15],ngaoundere:[7.3167,13.5833]};
-var tempLatLng=null;
-function goCity(name){document.querySelectorAll('.top button').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+name).classList.add('active');map.setView(cities[name],13);}
-map.on('click',function(e){tempLatLng=e.latlng;document.getElementById('modal').classList.add('show');document.getElementById('reportInput').value='';document.getElementById('reportInput').focus();});
-function closeModal(){document.getElementById('modal').classList.remove('show');tempLatLng=null;}
-function saveReport(){var text=document.getElementById('reportInput').value.trim();if(!text)return;var m=L.marker([tempLatLng.lat,tempLatLng.lng]).addTo(map);m.bindPopup('<b>'+text+'</b><br>'+tempLatLng.lat.toFixed(4)+', '+tempLatLng.lng.toFixed(4)+'<br>Just now - SPOTT').openPopup();closeModal();}
+var cities={cameroon:[7.3697,12.3547],buea:[4.155,9.2316],bamenda:[5.9631,10.1591],bafoussam:[5.4778,10.4173],yaounde:[3.848,11.5021],douala:[4.0511,9.7679],garoua:[9.3017,13.3927],maroua:[10.591,14.321],bertoua:[4.5833,13.6833],ebolowa:[2.9167,11.15],ngaoundere:[7.3167,13.5833]};
+function goCity(n){document.querySelectorAll('.top button').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+n).classList.add('active');if(n==='cameroon'){map.setView(cities[n],6)}else{map.setView(cities[n],13)}}
+map.on('click',function(e){L.popup().setLatLng(e.latlng).setContent('<b>What is happening here?</b><br><input id="t" style="width:180px;padding:6px;margin:6px 0" placeholder="Indique..."><br><button onclick="addP()" style="background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:6px">Add</button>').openOn(map);window.ll=e.latlng});
+function addP(){var v=document.getElementById('t').value;if(!v)return;L.marker([ll.lat,ll.lng]).addTo(map).bindPopup(v+'<br><button onclick="this.innerText=`❤️ Liked`">❤️ Like</button>').openPopup();map.closePopup()}
 </script>
 </body>
 </html>
